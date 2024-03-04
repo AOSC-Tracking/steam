@@ -1,0 +1,10 @@
+/*-stamp
+/*.debhelper
+/*.log
+/*.substvars
+/files
+/steam-launcher/
+/steam-libs-amd64/
+/steam-libs-i386/
+/steam/
+/tmp/

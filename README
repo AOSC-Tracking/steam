@@ -1,0 +1,22 @@
+Steam for Linux - launcher
+==========================
+
+This package contains a launching script that downloads and runs the Steam client program as the current user.
+
+If you have just unpacked the archive, type "make install" to install,
+or just run steam from the current directory.
+
+Please visit http://www.steampowered.com/ for more information.
+
+Enjoy!
+ -- Valve Corporation
+
+Reporting bugs
+--------------
+
+Issue tracking for Steam on Linux can be found here:
+<https://github.com/ValveSoftware/steam-for-linux/>
+
+The `subprojects/steam-devices` directory is maintained separately.
+Please send bug reports, pull requests and suggestions to its Github
+project: <https://github.com/ValveSoftware/steam-devices/>

@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+export DH_VERBOSE=1
+
+DEB_VERSION_UPSTREAM ?= $(shell dpkg-parsechangelog | sed -ne 's/^Version: *[0-9]*:*//p')
+
+%:
+	dh $@ --with=python3
+
+override_dh_auto_configure: update-version
+	dh_auto_configure
+
+update-version:
+	sed -i -e 's/^\(\(export *\)\?STEAMSCRIPT_VERSION=\).*/\1'$(DEB_VERSION_UPSTREAM)'/' bin_steam.sh

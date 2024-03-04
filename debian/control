@@ -1,0 +1,122 @@
+Source: steam
+Section: games
+Priority: optional
+Maintainer: Valve Corporation <linux@steampowered.com>
+Build-Depends: debhelper (>= 8.1.0),
+               dh-python | python3 (<< 3.3.2-10~),
+               perl,
+               python3
+Standards-Version: 3.9.4
+Homepage: http://www.steampowered.com/
+
+Package: steam-launcher
+Architecture: all
+Multi-Arch: foreign
+Provides: steam,
+          steam-devices,
+          steam-installer
+Conflicts: steam-devices,
+           steam-installer
+Replaces: steam,
+          steam64,
+          steam-devices,
+          steam-installer
+Breaks: steam64
+Pre-Depends: dpkg (>= 1.17.0)
+Depends: ${misc:Depends},
+         ${python3:Depends},
+         apt (>= 1.1),
+         apt (>= 1.6) | apt-transport-https,
+         ca-certificates,
+         coreutils (>= 8.23-1~) | realpath,
+         curl,
+         file,
+         libc6 (>= 2.15),
+         libnss3 (>= 2:3.26),
+         pkexec | policykit-1,
+         python3 (>= 3.4),
+         python3-apt,
+         xterm | gnome-terminal | konsole,
+         xz-utils,
+         zenity
+Recommends: steam-libs-amd64,
+            steam-libs-i386,
+            sudo,
+            xdg-utils | steamos-base-files,
+Description: Launcher for the Steam software distribution service
+ Steam is a software distribution service with an online store, automated
+ installation, automatic updates, achievements, SteamCloud synchronized
+ savegame and screenshot functionality, and many social features.
+
+Package: steam
+Section: oldlibs
+Priority: extra
+Architecture: i386
+Depends: steam-launcher (>= ${source:Version})
+Description: Launcher for the Steam software distribution service
+ This is a transitional package that can be safely removed once steam-launcher is installed.
+
+Package: steam-libs-amd64
+Architecture: amd64
+Multi-Arch: foreign
+Depends: libc6 (>= 2.15),
+         libcrypt1 | libc6 (<< 2.29-4),
+         libegl1 | libegl1-mesa,
+         libgbm1 | libgbm1-lts-xenial,
+         libnss3 (>= 2:3.26),
+         libgl1,
+         libgl1-mesa-dri,
+         libgcc-s1 | libgcc1,
+         libgpg-error0 (>= 1.10),
+         libstdc++6,
+         libudev1 | libudev0,
+         libxcb-dri3-0,
+         libxcb1,
+         libxinerama1 (>= 2:1.1.1),
+         libx11-6,
+Recommends: libasound2-plugins,
+            libva2,
+            libva-drm2,
+            libva-glx2,
+            libva-x11-2,
+            libxss1,
+            mesa-vulkan-drivers,
+            va-driver-all | va-driver,
+Suggests: nvidia-driver-libs,
+          nvidia-vulkan-icd,
+Description: Steam libraries metapackage
+ This metapackage depends on the amd64 libraries required by
+ steam-launcher.
+
+Package: steam-libs-i386
+Architecture: i386
+Multi-Arch: foreign
+Depends: libc6 (>= 2.15),
+         libcrypt1 | libc6 (<< 2.29-4),
+         libegl1 | libegl1-mesa,
+         libgbm1 | libgbm1-lts-xenial,
+         libgl1,
+         libgl1-mesa-dri,
+         libgcc-s1 | libgcc1,
+         libgpg-error0 (>= 1.10),
+         libstdc++6,
+         libudev1 | libudev0,
+         libxcb-dri3-0,
+         libxcb1,
+         libxinerama1 (>= 2:1.1.1),
+         libx11-6,
+Recommends: libasound2-plugins,
+            libfontconfig1,
+            libnm0,
+            libva2,
+            libva-drm2,
+            libva-glx2,
+            libva-x11-2,
+            libxss1,
+            mesa-vulkan-drivers,
+            va-driver-all | va-driver,
+Suggests: nvidia-driver-libs,
+          nvidia-vulkan-icd,
+Description: Steam libraries metapackage
+ This metapackage depends on the i386 libraries required by
+ steam-launcher.

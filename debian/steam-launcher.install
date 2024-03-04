@@ -1,0 +1,3 @@
+etc/* /etc
+subprojects/steam-devices/*.rules /lib/udev/rules.d
+usr/* /usr
