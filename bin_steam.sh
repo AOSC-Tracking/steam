@@ -202,4 +202,10 @@ fi
 cp "$LAUNCHSTEAMBOOTSTRAPFILE" "$LAUNCHSTEAMDIR/bootstrap.tar.xz"
 cd "$LAUNCHSTEAMDIR"
 
+# Setting IME to fcitx5 to fix input
+export GTK_IM_MODULE=fcitx5
+export QT_IM_MODULE=fcitx5
+export QT5_IM_MODULE=fcitx5
+export XMODIFIERS=@im=fcitx5
+
 exec "$LAUNCHSTEAMDIR/$STEAMBOOTSTRAP" "$@"
