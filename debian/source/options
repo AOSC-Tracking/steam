@@ -1,5 +1,3 @@
 tar-ignore=.git
-tar-ignore=.gitlab-ci.yml
 tar-ignore=.mypy_cache
 tar-ignore=__pycache__
-tar-ignore=ci

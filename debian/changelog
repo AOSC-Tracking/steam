@@ -1,3 +1,29 @@
+steam (1:1.0.0.81) beta; urgency=medium
+
+  * bin_steam.sh: Optimize the case where Steam is already running,
+    by using steam-runtime-steam-remote (if available) to forward the
+    command-line to the running instance (steamrt/tasks#496)
+  * bin_steam.sh: Don't copy bootstrap.tar.xz if it already matches
+    (steamrt/tasks#496)
+  * Build using updated Steam client:
+    - Client timestamp 1721173382 (2024-07-16)
+    - Steam Runtime (scout) version 0.20240610.91380
+  * Update steam-devices subproject up to 2024-05-22:
+    - Performance Designed Products Victrix Pro FS-12
+      (steam-devices#47, thanks to @notpentadactyl)
+  * buildutil: Internal changes (steamrt/tasks#468)
+  * CI: Make tests more realistic
+
+ -- Simon McVittie <smcv@collabora.com>  Thu, 15 Aug 2024 18:36:00 +0100
+
+steam (1:1.0.0.80) beta; urgency=medium
+
+  * Build using updated Steam client:
+    - Client timestamp 1709846872 (2024-03-07)
+    - Steam Runtime (scout) version 0.20240304.79797
+
+ -- Simon McVittie <smcv@collabora.com>  Mon, 22 Apr 2024 15:08:05 +0100
+
 steam (1:1.0.0.79) beta; urgency=medium
 
   [ Timothee Besset ]

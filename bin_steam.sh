@@ -21,7 +21,7 @@ log () {
     echo "bin_steam.sh[$$]: $*" >&2 || :
 }
 
-export STEAMSCRIPT_VERSION=1.0.0.79
+export STEAMSCRIPT_VERSION=1.0.0.81
 
 # Set up domain for script localization
 export TEXTDOMAIN=steam
@@ -169,6 +169,22 @@ function check_bootstrap()
 	fi
 }
 
+function forward_command_line()
+{
+	if ! [ -p "$STEAMCONFIG/steam.pipe" ]; then
+		return 1
+	fi
+
+	local runtime="$STEAMCONFIG/root/ubuntu12_32/steam-runtime"
+	local remote="$runtime/amd64/usr/bin/steam-runtime-steam-remote"
+
+	if [ -x "$remote" ] && "$remote" "$@" 2>/dev/null; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 # Don't allow running as root
 if [ "$(id -u)" == "0" ]; then
 	show_message --error $"Cannot run as root user"
@@ -177,6 +193,12 @@ fi
 
 # Look for the Steam data files
 setup_variables
+
+# If Steam is already running, try to forward the command-line to it.
+# If successful, there's nothing more to do.
+if forward_command_line "$@"; then
+	exit 0
+fi
 
 if ! check_bootstrap "$LAUNCHSTEAMDIR"; then
 	# See if we just need to recreate the data link
@@ -198,8 +220,13 @@ if ! check_bootstrap "$LAUNCHSTEAMDIR"; then
 	exit 1
 fi
 
+# Leave a copy of the bootstrap tarball in ~/.steam so that Steam can
+# re-bootstrap itself if required
+if ! cmp -s "$LAUNCHSTEAMBOOTSTRAPFILE" "$LAUNCHSTEAMDIR/bootstrap.tar.xz"; then
+    cp "$LAUNCHSTEAMBOOTSTRAPFILE" "$LAUNCHSTEAMDIR/bootstrap.tar.xz"
+fi
+
 # go to the install directory and run the client
-cp "$LAUNCHSTEAMBOOTSTRAPFILE" "$LAUNCHSTEAMDIR/bootstrap.tar.xz"
 cd "$LAUNCHSTEAMDIR"
 
 exec "$LAUNCHSTEAMDIR/$STEAMBOOTSTRAP" "$@"
