@@ -79,16 +79,18 @@ class SteamdepsTestCase(unittest.TestCase):
             if pkg not in already_installed
         ]
 
-        self.assertEqual(stderr_list, expected)
+        self.assertEqual(expected, stderr_list)
 
         for line in stdout_list:
             if line.startswith('Would run: apt-get ') and required_pkgs:
-                self.assertEqual(
-                    line,
-                    ('Would run: apt-get install --no-remove '
-                     + '-oAPT::Get::AutomaticRemove=false '
-                     + ' '.join(sorted(required_pkgs.split()))),
+                prefix = (
+                    'Would run: apt-get install --no-remove '
+                    '-oAPT::Get::AutomaticRemove=false '
                 )
+                self.assertEqual(prefix, line[:len(prefix)])
+                expected = sorted(required_pkgs.split())
+                would_install = sorted(line[len(prefix):].split())
+                self.assertEqual(expected, would_install)
                 break
         else:
             if required_pkgs:
@@ -102,7 +104,7 @@ class SteamdepsTestCase(unittest.TestCase):
         # The output is already sorted
         stdout_list = [x for x in stdout_list if x.startswith('- ')]
         expected = ['- {}'.format(pkg) for pkg in missing_pkgs_list]
-        self.assertEqual(stdout_list, expected)
+        self.assertEqual(expected, stdout_list)
 
         if output_message:
             self.assertIn(output_message, cp.stdout)

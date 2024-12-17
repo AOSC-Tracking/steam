@@ -10,7 +10,7 @@ Standards-Version: 3.9.4
 Homepage: http://www.steampowered.com/
 
 Package: steam-launcher
-Architecture: all
+Architecture: amd64
 Multi-Arch: foreign
 Provides: steam,
           steam-devices,
@@ -75,6 +75,7 @@ Depends: libc6 (>= 2.15),
          libxinerama1 (>= 2:1.1.1),
          libx11-6,
 Recommends: libasound2-plugins,
+            libxkbcommon-x11-0,
             libva2,
             libva-drm2,
             libva-glx2,
@@ -108,6 +109,7 @@ Depends: libc6 (>= 2.15),
 Recommends: libasound2-plugins,
             libfontconfig1,
             libnm0,
+            libxkbcommon-x11-0,
             libva2,
             libva-drm2,
             libva-glx2,

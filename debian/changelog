@@ -1,3 +1,39 @@
+steam (1:1.0.0.82) beta; urgency=medium
+
+  * Build using updated Steam client:
+    - Client timestamp 1726604483 (2024-09-17)
+    - Steam Runtime (scout) version 0.20240806.97925
+  * Packaging:
+    - Convert steam-launcher from Architecture: all to amd64.
+      Steam requires an x86_64 operating system since at least 2020, and
+      making the packaging reflect this allows us to pull in basic x86_64
+      dependencies more reliably. (steamrt/tasks#441)
+    - Recommend libxkbcommon{,-x11-}0 on both amd64 and i386.
+      When combined with Steam Linux Runtime changes, this avoids crashes
+      in some SLR games on systems where a Vulkan layer depends on
+      libxkbcommon, for example MangoHud 0.7.2. (steamrt/tasks#530)
+  * Expand the bootstrap tarball:
+    - Add steam-runtime-check-requirements.
+      This allows some basic requirements to be checked as early as
+      possible in the installation process. (steamrt/tasks#441)
+    - Add steam-runtime-identify-library-abi and its dependencies.
+      This avoids a confusing warning message and speeds up first-time
+      Steam Runtime setup. (steamrt/tasks#441)
+    - Add srt-logger (steamrt/tasks#447)
+    - Add 32-bit libcurl and its dependencies for the crash report uploader,
+      so that crashes and assertion failures during first-time startup can
+      be reported (steamrt/tasks#539)
+    - Add fonts required by the Steam client, avoiding an assertion failure
+      during first-time startup (steamrt/tasks#538)
+  * bin_steam.sh:
+    - Start writing to console-linux.txt as early as possible, using the
+      srt-logger tool (steamrt/tasks#447)
+    - Try harder to create ~/.steam/steam atomically.
+      Thanks to andresr.
+  * CI enhancements
+
+ -- Simon McVittie <smcv@collabora.com>  Thu, 03 Oct 2024 18:45:49 +0100
+
 steam (1:1.0.0.81) beta; urgency=medium
 
   * bin_steam.sh: Optimize the case where Steam is already running,

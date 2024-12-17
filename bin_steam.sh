@@ -16,12 +16,13 @@ STEAMSCRIPT="$(cd "${0%/*}" && echo "$PWD")/${0##*/}"
 export STEAMSCRIPT
 bootstrapscript="$(readlink -f "$STEAMSCRIPT")"
 bootstrapdir="$(dirname "$bootstrapscript")"
+log_opened=
 
 log () {
     echo "bin_steam.sh[$$]: $*" >&2 || :
 }
 
-export STEAMSCRIPT_VERSION=1.0.0.81
+export STEAMSCRIPT_VERSION=1.0.0.82
 
 # Set up domain for script localization
 export TEXTDOMAIN=steam
@@ -43,8 +44,9 @@ function show_message()
 		;;
 	esac
 
+	log "$title: $*"
+
 	if [ "${XDG_CURRENT_DESKTOP}" == "gamescope" ]; then
-		log "$title: $*"
 		return
 	fi
 
@@ -57,6 +59,61 @@ function show_message()
 	fi
 }
 
+# Keep in sync with the function of the same name in steam.sh
+# Usage: maybe_open_log $STEAM_RUNTIME_SCOUT ~/.steam/steam "$*"
+# Uses globals: log_opened + environment variables set by srt-logger
+function maybe_open_log()
+{
+	local srt="$1"
+	local data="$2"
+	local argv="$3"
+
+	case " $argv " in
+		(*\ -srt-logger-opened\ *)
+			log "Log already open"
+			return 0
+			;;
+	esac
+
+	if [ -n "$log_opened" ]; then
+		return 0
+	fi
+
+	if [ "${STEAM_RUNTIME_LOGGER-}" = "0" ]; then
+		# Interferes with vscode's gdb wrapping for instance
+		log "Logging to console-linux.txt disabled via STEAM_RUNTIME_LOGGER"
+		return 0
+	fi
+
+	if [ "x${DEBUGGER-}" != "x" ]; then
+		# Interferes with ncurses (cgdb etc.)
+		log "Setting up for debugging, not logging to console-linux.txt"
+		return 0
+	fi
+
+	local log_folder="${STEAM_CLIENT_LOG_FOLDER:-logs}"
+
+	# Avoid using mkdir -p here: if ~/.steam/steam is somehow missing,
+	# we don't want to create it as a real directory
+	if [ -d "$data/$log_folder" ] || mkdir "$data/$log_folder"; then
+		log_dir="$data/$log_folder"
+	else
+		log "Couldn't create $data/$log_folder, not logging to console-linux.txt"
+		return 0
+	fi
+
+	if source "${srt}/usr/libexec/steam-runtime-tools-0/logger-0.bash" \
+		--log-directory="$log_dir" \
+		--filename=console-linux.txt \
+		--parse-level-prefix \
+		-t steam \
+	; then
+		log_opened=1
+	else
+		log "Couldn't set up srt-logger, not logging to console-linux.txt"
+	fi
+}
+
 function detect_platform()
 {
 	# Maybe be smarter someday
@@ -66,6 +123,7 @@ function detect_platform()
 
 function setup_variables()
 {
+	# 'steam' or sometimes 'steambeta'
 	STEAMPACKAGE="${0##*/}"
 
 	if [ "$STEAMPACKAGE" = bin_steam.sh ]; then
@@ -73,10 +131,14 @@ function setup_variables()
 	fi
 
 	STEAMCONFIG=~/.steam
+	# ~/.steam/steam or ~/.steam/steambeta
 	STEAMDATALINK="$STEAMCONFIG/$STEAMPACKAGE"
 	STEAMBOOTSTRAP=steam.sh
+	# User-controlled, often ~/.local/share/Steam or ~/Steam
 	LAUNCHSTEAMDIR="$(readlink -e -q "$STEAMDATALINK" || true)"
+	# Normally 'ubuntu12_32'
 	LAUNCHSTEAMPLATFORM="$(detect_platform)"
+	# Often in /usr/lib/steam
 	LAUNCHSTEAMBOOTSTRAPFILE="$bootstrapdir/bootstraplinux_$LAUNCHSTEAMPLATFORM.tar.xz"
 	if [ ! -f "$LAUNCHSTEAMBOOTSTRAPFILE" ]; then
 		LAUNCHSTEAMBOOTSTRAPFILE="/usr/lib/$STEAMPACKAGE/bootstraplinux_$LAUNCHSTEAMPLATFORM.tar.xz"
@@ -155,14 +217,24 @@ function install_bootstrap()
 
 function repair_bootstrap()
 {
-	rm -f "$STEAMDATALINK" && ln -s "$1" "$STEAMDATALINK"
+	ln -fns "$1" "$STEAMDATALINK"
 	setup_variables
 }
 
 function check_bootstrap()
 {
-	if [[ -n "$1" && -x "$1/$STEAMBOOTSTRAP" ]]; then
+	local data="$1"
+	# Normally we would look for ubuntu12_32/steam-runtime in
+	# ~/.steam/root rather than ~/.steam/steam if different, but in
+	# this script we assume that ~/.steam/steam and ~/.steam/root
+	# are the same: they only differ in developer use-cases which
+	# also bypass this script
+	local srt="${STEAM_RUNTIME_SCOUT:-"$data/ubuntu12_32/steam-runtime"}"
+	local argv="$2"
+
+	if [[ -n "$data" && -x "$data/$STEAMBOOTSTRAP" ]]; then
 		# Looks good...
+		maybe_open_log "$srt" "$data" "$argv"
 		return 0
 	else
 		return 1
@@ -200,22 +272,24 @@ if forward_command_line "$@"; then
 	exit 0
 fi
 
-if ! check_bootstrap "$LAUNCHSTEAMDIR"; then
+if ! check_bootstrap "$LAUNCHSTEAMDIR" "$*"; then
 	# See if we just need to recreate the data link
-	if check_bootstrap "$DEFAULTSTEAMDIR"; then
+	if check_bootstrap "$DEFAULTSTEAMDIR" "$*"; then
+		# Usually ~/.steam/steam -> ~/.local/share/Steam
 		log $"Repairing installation, linking $STEAMDATALINK to $DEFAULTSTEAMDIR"
 		repair_bootstrap "$DEFAULTSTEAMDIR"
-	elif check_bootstrap "$CLASSICSTEAMDIR"; then
+	elif check_bootstrap "$CLASSICSTEAMDIR" "$*"; then
+		# Legacy: ~/.steam/steam -> ~/Steam
 		log $"Repairing installation, linking $STEAMDATALINK to $CLASSICSTEAMDIR"
 		repair_bootstrap "$CLASSICSTEAMDIR"
 	fi
 fi
 
-if [[ ! -L "$STEAMDATALINK" ]] || ( ! check_bootstrap "$LAUNCHSTEAMDIR" ); then
+if [[ ! -L "$STEAMDATALINK" ]] || ( ! check_bootstrap "$LAUNCHSTEAMDIR" "$*" ); then
 	install_bootstrap "$DEFAULTSTEAMDIR"
 fi
 
-if ! check_bootstrap "$LAUNCHSTEAMDIR"; then
+if ! check_bootstrap "$LAUNCHSTEAMDIR" "$*"; then
 	show_message --error $"Couldn't set up Steam data - please contact technical support"
 	exit 1
 fi
@@ -229,4 +303,4 @@ fi
 # go to the install directory and run the client
 cd "$LAUNCHSTEAMDIR"
 
-exec "$LAUNCHSTEAMDIR/$STEAMBOOTSTRAP" "$@"
+exec "$LAUNCHSTEAMDIR/$STEAMBOOTSTRAP" ${log_opened+-srt-logger-opened} "$@"
