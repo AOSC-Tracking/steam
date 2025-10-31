@@ -3,8 +3,6 @@
     This script handles installing system dependencies for games using the
     Steam runtime.  It is intended to be customized by other distributions
     to "do the right thing"
-
-    Usage: steamdeps dependencies.txt
 """
 
 import argparse
@@ -42,10 +40,11 @@ SUPPORTED_STEAM_RUNTIME = ['1']
 SUPPORTED_STEAM_DEPENDENCY_VERSION = ['1']
 
 # Environment variables that need to be passed through when we re-exec
-# under pkexec
+# under pkexec or sudo
 PASS_THROUGH_ENV_VARS = (
     'SL_TEST_NVIDIA_VERSION',
     'STEAM_LAUNCHER_VERBOSE',
+    'WSL_DISTRO_NAME',
     'XDG_CURRENT_DESKTOP',
 )
 
@@ -574,6 +573,15 @@ def pass_through_environ(
             argv.append('--setenv={}={}'.format(var, os.environ[var]))
 
 
+def as_root_adverb():
+    if 'WSL_DISTRO_NAME' in os.environ:
+        # polkitd/pkexec isn't set up correctly in WSL, so assume that we
+        # have sudo available
+        return ['sudo']
+    else:
+        return ['pkexec']
+
+
 ###
 def update_packages(packages, install_confirmation=True):
     """
@@ -591,10 +599,10 @@ def update_packages(packages, install_confirmation=True):
         logger.debug('Will install packages: %s', ' '.join(packages))
 
     if not is_root():
-        # We don't have root privileges, call again this script with pkexec
+        # We don't have root privileges, call again this script with
+        # sudo or pkexec as appropriate
         logger.debug('Re-running steamdeps as root...')
-        argv = [
-            'pkexec',
+        argv = as_root_adverb() + [
             os.path.abspath(__file__),
             '--interactive',
             # We already showed the confirmation once, no need to repeat it
@@ -602,6 +610,7 @@ def update_packages(packages, install_confirmation=True):
             '--install',
             ' '.join(packages)
         ]
+
         pass_through_environ(argv)
         cp = run_subprocess(argv, universal_newlines=True)
         return cp.returncode
@@ -615,40 +624,6 @@ def update_packages(packages, install_confirmation=True):
     cp = run_subprocess(APT_GET_INSTALL + packages, universal_newlines=True)
 
     return cp.returncode
-
-
-###
-def check_config(path, config):
-    if "STEAM_RUNTIME" not in config:
-        sys.stderr.write(
-            "Missing STEAM_RUNTIME definition in %s\n" % path)
-        return False
-
-    if config["STEAM_RUNTIME"] not in SUPPORTED_STEAM_RUNTIME:
-        sys.stderr.write(
-            "Unsupported Steam runtime: %s\n" % config["STEAM_RUNTIME"])
-        return False
-
-    if "STEAM_DEPENDENCY_VERSION" not in config:
-        sys.stderr.write(
-            "Missing STEAM_DEPENDENCY_VERSION definition in %s\n" % path)
-        return False
-
-    if config["STEAM_DEPENDENCY_VERSION"]\
-            not in SUPPORTED_STEAM_DEPENDENCY_VERSION:
-        sys.stderr.write("Unsupported dependency version: %s\n" % config[
-            "STEAM_DEPENDENCY_VERSION"])
-        return False
-
-    # Make sure we can use dpkg on this system.
-    try:
-        subprocess.call(['dpkg', '--version'], stdout=subprocess.PIPE)
-    except FileNotFoundError:
-        sys.stderr.write("Couldn't find dpkg, please update steamdeps for "
-                         "your distribution.\n")
-        return False
-
-    return True
 
 
 def update_installed_packages(packages):
@@ -680,7 +655,6 @@ def main():
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
-    config = {}
     os_release = OsRelease()
     missing_packages = []    # type: typing.List[str]
 
@@ -725,11 +699,14 @@ def main():
     )
     parser.add_argument(
         'dependencies',
-        metavar='$HOME/.steam/root/steamdeps.txt',
+        metavar='IGNORED',
         nargs='?',
-        help='Path to steamdeps.txt',
+        help='Ignored for backwards compatibility',
     )
-    parser.set_defaults(install_confirmation=True)
+    parser.set_defaults(
+        dependencies='',
+        install_confirmation=True,
+    )
     args = parser.parse_args()
 
     if args.setenv:
@@ -741,19 +718,6 @@ def main():
             var, val = pair.split('=', 1)
             os.environ[var] = val
 
-    if args.install and args.dependencies:
-        parser.print_usage(sys.stderr)
-        sys.stderr.write(
-            "The steamdeps.txt path and --install cannot both be used\n"
-        )
-        return 2
-    elif not args.install and not args.dependencies:
-        parser.print_usage(sys.stderr)
-        sys.stderr.write(
-            "One between the steamdeps.txt path and --install is required\n"
-        )
-        return 2
-
     if 'STEAM_LAUNCHER_VERBOSE' in os.environ:
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -762,6 +726,9 @@ def main():
     if args.debug_dump_os_release:
         os_release.dump()
         return 0
+
+    if args.dependencies:
+        logger.warning('Dependency file %r ignored', args.dependencies)
 
     if args.install:
         if args.dry_run:
@@ -809,11 +776,12 @@ def main():
                 '--update-apt',
             ]
             pass_through_environ(argv)
-            argv.append(os.path.abspath(args.dependencies))
+
             cp = run_subprocess(argv, universal_newlines=True)
             return cp.returncode
         elif not is_root():
-            # We don't have root privileges, call again this script with pkexec
+            # We don't have root privileges, call again this script with
+            # pkexec/sudo
             print('The packages cache seems to be out of date')
             input('\nPress return to update the list of available packages: ')
 
@@ -821,14 +789,13 @@ def main():
                 'Re-running steamdeps as root to be able to update apt '
                 'cache...',
             )
-            argv = [
-                'pkexec',
+            argv = as_root_adverb() + [
                 os.path.abspath(__file__),
                 '--interactive',
                 '--update-apt',
             ]
             pass_through_environ(argv)
-            argv.append(os.path.abspath(args.dependencies))
+
             cp = run_subprocess(argv, universal_newlines=True)
 
             return cp.returncode
@@ -838,53 +805,9 @@ def main():
 
         update_apt()
 
-    # Make sure we can open the file
-    try:
-        fp = open(args.dependencies)
-    except Exception as e:
-        sys.stderr.write("Couldn't open file: %s\n" % e)
-        return 2
-
-    # Look for configuration variables
-    config_pattern = re.compile(r"(\w+)\s*=\s*(\w+)")
-    for line in fp:
-        line = line.strip()
-        if line == "" or line[0] == '#':
-            continue
-
-        match = re.match(config_pattern, line)
-        if match is not None:
-            config[match.group(1)] = match.group(2)
-
-    # Check to make sure we have a valid config
-    if not check_config(args.dependencies, config):
-        return 3
-
-    # Seek back to the beginning of the file
-    fp.seek(0)
-
     # Load the package dependency information
     packages = {}
     dependencies = []
-    for line in fp:
-        line = line.strip()
-        if line == "" or line[0] == '#':
-            continue
-
-        match = re.match(config_pattern, line)
-        if match is not None:
-            continue
-
-        row = []
-        for section in line.split("|"):
-            package = create_package(section)
-            if package is None:
-                continue
-
-            packages[package.name] = package
-            row.append(package)
-
-        dependencies.append(row)
 
     ensure_installed_packages = set()       # type: typing.Set[str]
     archs = [get_arch()]
@@ -909,9 +832,8 @@ def main():
 
                 ensure_installed_packages.add(package.name)
 
-    # Try to install these packages, even if they are not
-    # listed in the steamdeps.txt file. If they are not available we
-    # just inform the user about it and continue.
+    # Try to always install these packages. If they are not
+    # available we just inform the user about it and continue.
     for additional_pkg in (
         'steam-launcher',
         'steam-libs-amd64:amd64',

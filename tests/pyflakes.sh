@@ -13,6 +13,7 @@ if [ "${PYFLAKES:=pyflakes3}" = false ] || \
 elif "${PYFLAKES}" \
     ./*.py \
     buildutils/*.py \
+    ci/*.py \
     steam_launcher/*.py \
     tests/*.py \
     >&2; then

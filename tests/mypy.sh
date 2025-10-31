@@ -13,6 +13,7 @@ i=0
 for script in \
     ./*.py \
     buildutils/*.py \
+    ci/*.py \
     steam_launcher/*.py \
     tests/*.py \
 ; do

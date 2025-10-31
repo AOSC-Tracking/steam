@@ -18,6 +18,7 @@ echo "1..1"
 if "${PYCODESTYLE}" \
     ./*.py \
     buildutils/*.py \
+    ci/*.py \
     steam_launcher/*.py \
     tests/*.py \
     >&2; then

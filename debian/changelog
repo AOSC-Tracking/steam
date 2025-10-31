@@ -1,3 +1,115 @@
+steam (1:1.0.0.85) beta; urgency=medium
+
+  * Build using updated Steam client:
+    - Client timestamp 1757650573 (2025-09-12)
+    - Steam Runtime (scout) version 1.0.20250616.139563
+  * Update steam-devices subproject up to 2025-09-26:
+    - Match Valve USB devices even if they are a child of a USB device,
+      rather than the USB device itself
+      (steam-devices#68, steamrt/tasks#813)
+
+ -- Simon McVittie <smcv@collabora.com>  Tue, 30 Sep 2025 15:27:01 +0100
+
+steam (1:1.0.0.84) beta; urgency=medium
+
+  * Build using updated Steam client:
+    - Client timestamp 1751405894 (2025-07-01)
+    - Steam Runtime (scout) version 1.0.20250519.130917
+    - Remove steam-runtime-supervisor from the bootstrap mini-runtime,
+      no longer required
+  * Appstream metainfo:
+    - Add OARS content rating.
+      Originally from the unofficial Flatpak package, thanks to salarua
+  * Packaging:
+    - steam.gpg, steam-key.asc:
+      Re-export 2048-bit signing key with a stronger self-signature.
+      This ensures that the apt-secure(8) infrastructure will continue to
+      treat it as valid in 2026 and beyond.
+      (steamrt/tasks#752, steam-for-linux#12050)
+    - steam.gpg, steam-key.asc:
+      Mark a newly-generated 4096-bit signing key as trusted, starting the
+      process of key rotation to this new key. We will sign the apt
+      repository with both keys for a while, giving all users a smooth
+      upgrade path. The old key can eventually be phased out.
+      (steamrt/tasks#752, steam-for-linux#12050)
+    - d/steam-launcher.prerm: Clean up update-notifier snippet before removal
+      (steam-for-linux#5566)
+    - d/changelog: Correct client timestamp in previous release
+    - d/control: Depend on xdg-user-dirs, for xdg-user-dir(1).
+      Steam uses this internally. (Closes: #1106489)
+    - Ensure that steam_latest.deb, etc. are updated during releases
+      (steam-for-linux#12045)
+    - d/control: Drop obsolete alternative dependencies that were used
+      for Ubuntu 14.04:
+      + realpath (superseded by coreutils)
+      + libgbm1-lts-xenial (superseded by libgbm1)
+      The package hasn't been installable on 14.04 since 1.0.0.76.
+      Since 2025-08-15 the minimum version is Ubuntu 20.04 or Debian 11,
+      as documented by
+      <https://help.steampowered.com/en/faqs/view/107F-BB20-FB5A-1CE4>,
+      but we are not making that a hard requirement here until it is
+      functionally necessary.
+  * Tests/CI:
+    - Use Nvidia Tesla 535 driver to test non-default choice on Debian 13
+    - Use debian/eol Docker images to test Debian 10 and 11
+
+ -- Simon McVittie <smcv@collabora.com>  Tue, 19 Aug 2025 17:55:43 +0100
+
+steam (1:1.0.0.83) beta; urgency=medium
+
+  * Build using updated Steam client:
+    - Client timestamp 1745269938 (2025-04-21)
+    - Steam Runtime (scout) version 1.0.20250307.120442
+    - Add steam-runtime-supervisor to the bootstrap mini-runtime.
+      It is now required by steam.sh (steamrt/tasks#714)
+    - Don't require steamdeps.txt to be present (steamrt/tasks#713)
+  * steam.desktop:
+    - Update URL used to implement the Community action (steamrt/tasks#715)
+    - Update URL used to implement the News action (steamrt/tasks#715)
+    - Consistently use an absolute path for the steam executable.
+      Previously we had an inconsistent mixture of an absolute path
+      (for the main menu entry) and the basename (for Desktop Actions).
+      We are installing Steam to a fixed location, so for predictable
+      behaviour we should make our .desktop file refer to that same
+      fixed location, and not some other executable named steam that
+      might happen to be in the $PATH.
+      Some users are known to have a script named steam earlier in
+      the $PATH; for example they might have a /usr/local/bin/steam
+      that passes extra options, sets environment variables, or runs
+      Steam wrapped by some sort of "adverb" command). After this
+      change, they would still be able to arrange for that script
+      to be invoked by desktop environments' menus by putting
+      a corresponding .desktop file earlier in $XDG_DATA_DIRS,
+      for example /usr/local/share/applications/steam.desktop or
+      ~/.local/share/applications/steam.desktop, which will take
+      precedence over ours.
+      Alternatively, in packaging systems that have `dpkg-divert` or
+      a similar mechanism, that mechanism can be used to divert the
+      wrapped executable.
+      (steamrt/tasks#700)
+  * bin_steam.sh:
+    - Take over responsibility for running steamdeps during
+      launch, no longer done by steam.sh (steamrt/tasks#713)
+    - Remove support for parsing steamdeps.txt (steamrt/tasks#713)
+  * bin_steamdeps.py:
+    - Use sudo instead of pkexec if running under WSL.
+      polkitd/pkexec doesn't appear to be set up to work correctly in WSL.
+      (steamrt/tasks#624)
+  * Appstream metainfo:
+    - Normalize homepage URL
+    - Replace <developer_name> with <developer> as per Appstream 1.0
+  * Packaging:
+    - Depend on lsof (steamrt/tasks#647)
+    - Depend on a D-Bus session bus (steamrt/tasks#713)
+    - Add Recommends on xdg-desktop-portal and a backend.
+      This is used for the file chooser, among others.
+      (steamrt/tasks#713)
+  * Tests/CI:
+    - Only install software-properties-common where required
+      (LTS and EOL versions of Debian)
+
+ -- Simon McVittie <smcv@collabora.com>  Thu, 24 Apr 2025 10:55:57 +0100
+
 steam (1:1.0.0.82) beta; urgency=medium
 
   * Build using updated Steam client:

@@ -1,0 +1,10 @@
+#!/bin/sh -e
+# prerm script for steam
+#
+# see: dh_installdeb(1)
+
+PACKAGE=steam
+UPDATENOTIFIERDIR=/var/lib/update-notifier/user.d
+rm -f "$UPDATENOTIFIERDIR/$PACKAGE-install-notify"
+
+#DEBHELPER#

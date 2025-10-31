@@ -22,7 +22,7 @@ log () {
     echo "bin_steam.sh[$$]: $*" >&2 || :
 }
 
-export STEAMSCRIPT_VERSION=1.0.0.82
+export STEAMSCRIPT_VERSION=1.0.0.85
 
 # Set up domain for script localization
 export TEXTDOMAIN=steam
@@ -298,6 +298,13 @@ fi
 # re-bootstrap itself if required
 if ! cmp -s "$LAUNCHSTEAMBOOTSTRAPFILE" "$LAUNCHSTEAMDIR/bootstrap.tar.xz"; then
     cp "$LAUNCHSTEAMBOOTSTRAPFILE" "$LAUNCHSTEAMDIR/bootstrap.tar.xz"
+fi
+
+STEAMDEPS="${STEAMSCRIPT%/*}/steamdeps"
+if [ -x "$STEAMDEPS" ]; then
+	if ! "$STEAMDEPS"; then
+		log "Unable to install Steam dependencies by running $STEAMDEPS, trying to continue anyway..."
+	fi
 fi
 
 # go to the install directory and run the client

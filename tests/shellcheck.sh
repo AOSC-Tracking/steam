@@ -23,6 +23,8 @@ cd "$G_TEST_SRCDIR"
 n=0
 for shell_script in \
         ./*.sh \
+        ci/*.sh \
+        ci/*.sh.in \
         tests/*.sh \
 ; do
     n=$((n + 1))

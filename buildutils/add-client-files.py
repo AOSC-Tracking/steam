@@ -328,6 +328,7 @@ class Main:
         rel: str,
         dest: str,
         executable: bool = False,
+        missing_ok: bool = False,
     ) -> None:
         for d in dirs:
             if not d:
@@ -339,7 +340,8 @@ class Main:
                 self.install(src, dest, executable=executable)
                 return
 
-        raise RuntimeError(f'{rel} not found in {dirs}')
+        if not missing_ok:
+            raise RuntimeError(f'{rel} not found in {dirs}')
 
     def _normalize_tar_entry(
         self,
@@ -468,6 +470,7 @@ class Main:
             'steamdeps.txt',
             os.path.join(tmpdir, 'bootstrap', ''),
             executable=False,
+            missing_ok=True,
         )
         self.install_search(
             (self.client_overlay, client_dir),

@@ -1,4 +1,5 @@
-# Copyright 2021 Collabora Ltd.
+#!/usr/bin/env python3
+# Copyright 2021-2025 Collabora Ltd.
 # SPDX-License-Identifier: MIT
 
 import os
@@ -16,7 +17,7 @@ G_TEST_SRCDIR = os.getenv(
 
 
 class SteamdepsTestCase(unittest.TestCase):
-    def test_dependencies(self):
+    def test_dependencies(self, steamdeps_content=None):
         self.maxDiff = None
 
         # Whitespace separated list
@@ -47,17 +48,22 @@ class SteamdepsTestCase(unittest.TestCase):
 
         steamdeps = os.path.join(G_TEST_SRCDIR, "steamdeps")
 
-        with NamedTemporaryFile(mode='w') as tmp_steamdeps:
-            # This could be expanded by shipping different steamdeps.txt
-            # files to test the parsing of dependencies too
-            tmp_steamdeps.write("STEAM_RUNTIME=1\nSTEAM_DEPENDENCY_VERSION=1")
-            tmp_steamdeps.flush()
-
+        if steamdeps_content is None:
             cp = run_subprocess(
-                [steamdeps, "--dry-run", tmp_steamdeps.name],
+                [steamdeps, "--dry-run"],
                 capture_output=True,
                 universal_newlines=True,
             )
+        else:
+            with NamedTemporaryFile(mode='w') as tmp_steamdeps:
+                tmp_steamdeps.write(steamdeps_content)
+                tmp_steamdeps.flush()
+
+                cp = run_subprocess(
+                    [steamdeps, "--dry-run", tmp_steamdeps.name],
+                    capture_output=True,
+                    universal_newlines=True,
+                )
 
         stdout_list = cp.stdout.splitlines()
         stderr_list = cp.stderr.splitlines()
@@ -108,6 +114,20 @@ class SteamdepsTestCase(unittest.TestCase):
 
         if output_message:
             self.assertIn(output_message, cp.stdout)
+
+    def test_deprecated_file(self):
+        # Its contents are ignored: we don't *actually* install hello
+        # any more
+        self.test_dependencies(
+            '''
+            STEAM_RUNTIME=1
+            STEAM_DEPENDENCY_VERSION=1
+
+            base-files
+            hello | goodbye
+            nonexistent-package
+            ''',
+        )
 
 
 if __name__ == '__main__':
