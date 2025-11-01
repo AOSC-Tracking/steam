@@ -316,4 +316,10 @@ export QT_IM_MODULE=fcitx5
 export QT5_IM_MODULE=fcitx5
 export XMODIFIERS=@im=fcitx5
 
+# Setting for emulator
+export STEAMOS=1
+export STEAM_RUNTIME=1
+export PROTON_USE_WOW64=1
+export DBUS_FATAL_WARNINGS=0
+
 exec "$LAUNCHSTEAMDIR/$STEAMBOOTSTRAP" ${log_opened+-srt-logger-opened} "$@"
